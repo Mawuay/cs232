@@ -1,0 +1,1060 @@
+Script started on Wed 13 Feb 2019 05:49:42 PM EST
+dma2@maroon02:~/cs232/proj01$ cd  ls
+Debug  main.cpp  NanoTimer.h  typescript
+dma2@maroon02:~/cs232/proj01$ cat main.cpp
+/* Name: Daniel Ackuaku
+ * Date: 7th February 2019.
+ * Class: CS 232
+ * Project 1: System Calls and Utilities
+ *
+ *
+ *
+ */
+
+#include <iostream>
+#include <stdlib.h>
+#include <string>       // string to int
+#include <stdio.h>			//
+#include <unistd.h>     // to include fork(), getpid()
+#include <sstream>			// stringstream
+#include "NanoTimer.h"	// NanaTimer.h
+#include <pthread.h>		// pthread
+#include <sys/wait.h>		// wait()
+using namespace std;
+
+
+
+ /* *threadHello
+  * @param: void *threadid
+  * Precondition: None
+  * Postcondition: it points to the location of the thread, and prints out the thread ID
+  * return: NULL
+  */
+void *threadHello(void *threadid) {
+	cout << "Hello from the child thread ( TID = " << pthread_self() << "  ) "
+			<< endl;
+	return NULL;
+}
+
+/* main
+ * @param: int argc,
+ 					 char* argv[]
+ * Precondition: requires commad line input.
+ * Postcondition: it runs the program.
+ * return: 0
+ */
+int main(int argc, char* argv[]) {
+	bool process = false;
+	bool thread = false;
+	int repeat = 1;
+	pid_t pid;
+	string numParse;
+	pthread_t my_threads;
+	int threadCheck;
+	double processAverageTime = 0;
+	double threadAverageTime = 0;
+
+	cout
+			<< "========================================================================================"
+			<< endl;
+	cout
+			<< "\n++++++++++++++++++++++++++++++++++++++++   START   +++++++++++++++++++++++++++++++++++++++ \n"
+			<< endl;
+
+/* Swtitch controll
+ * @param: None
+ * Precondition:
+ * Postcondition: it evaluates the user input and triggers the bool swtiches to create processes and threads.
+ * return: None
+ */
+	for (int i = 1; i < argc; ++i) {
+
+
+		if (string(argv[i]).substr(0, 2) == "-r") { 				// The values in the adresses contained in argv[] are converted into strings and compared against the command line switches.
+			string holder = string(argv[i]).substr(2, string(argv[i]).length()); 		// converts the argv[i] into int
+			stringstream test(holder);
+			test >> repeat;
+			if (repeat < 1) {
+				repeat = 1;
+			}
+
+			cout << "You requested for the computation to be repeated "
+					<< repeat << " times." << endl;
+		} else if (string(argv[i]) == "-p" || string(argv[i]) == "-process") {
+			process = true;
+			cout << "You have requested the time needed to create a process."
+					<< endl;
+		} else if (string(argv[i]) == "-t" || string(argv[i]) == "-thread") {
+			thread = true;
+			cout << "You have requested the time needed to create a thread."
+					<< endl;
+		} else {
+			cerr << "You have entered an invalid command " << endl;
+		}
+	}
+
+	/* creating processes
+	 * @param: None
+	 * Precondition: bool
+	 * Postcondition: it evaluates the user input and triggers the bool swtiches to create processes and threads.
+	 * Function: it creates child processes based of of a parent process and evaluates the time needed to do so.
+	 * return: 0
+	 */
+	if (process) {
+		NanoTimer timer;
+		cout << "The parent PID  = " << getpid() << endl;
+		for (int i = 1; i < repeat + 1; i++) {
+			timer.start();
+			pid = fork();               //Performs the fork.
+			timer.stop();
+			processAverageTime += timer.getTotalTime();
+			timer.reset();
+
+			if (pid == 0) {
+				cout << "Hello from the child process (PID = " << getpid()
+						<< " ) " << endl;
+				return 0;
+			}
+
+		}
+		sleep(1);        // Don't let a parent ending first end the tree below.
+		process = false;
+		cout << "\nAverage time taken for a process to be created  =  "
+				<< (processAverageTime / repeat) << "s \n" << endl;
+
+	}
+
+	/* creating threads
+	 * @param: None
+	 * Precondition: bool
+	 * Postcondition: it evaluates the user input and triggers the bool swtiches to create processes and threads.
+	 * Function: it uses threadHello() method to create child threads based of a parent theard and evaluates the time needed to do so.
+	 * return: 0
+	 */
+	if (thread) {
+		NanoTimer timerT;
+		for (int i = 0; i < repeat; i++) {
+			timerT.start();
+			threadCheck = pthread_create(&my_threads, NULL, &threadHello, NULL);
+			pthread_join(my_threads, NULL); // A call to pthread_join blocks the calling thread until the thread with identifier equal to the first argument terminates.
+			timerT.stop();
+			threadAverageTime += timerT.getTotalTime();
+			timerT.reset();
+
+		}
+		cout << "\nAverage time taken for a thread to be created  =  "
+				<< (threadAverageTime / repeat) << "s \n" << endl;
+		thread = false;
+		cout
+				<< "\n++++++++++++++++++++++++++++++++++++++++   END   +++++++++++++++++++++++++++++++++++++++ \n"
+				<< endl;
+		return 0;
+	}
+
+	return 0;
+}
+dma2@maroon02:~/cs232/proj01$ cd Debug
+dma2@maroon02:~/cs232/proj01/Debug$ ls
+main.d	main.o	makefile  objects.mk  proj01  sources.mk  subdir.mk
+dma2@maroon02:~/cs232/proj01/Debug$ make all
+Building file: ../main.cpp
+Invoking: GCC C++ Compiler
+g++ -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"main.d" -MT"main.o" -o "main.o" "../main.cpp"
+[01m[K../main.cpp:[m[K In function '[01m[Kint main(int, char**)[m[K':
+[01m[K../main.cpp:49:6:[m[K [01;35m[Kwarning: [m[Kvariable '[01m[KthreadCheck[m[K' set but not used [-Wunused-but-set-variable]
+  int threadCheck;
+[01;32m[K      ^[m[K
+Finished building: ../main.cpp
+ 
+Building target: proj01
+Invoking: GCC C++ Linker
+g++  -o "proj01"  ./main.o   -lrt -lpthread
+Finished building target: proj01
+ 
+dma2@maroon02:~/cs232/proj01/Debug$ ./proj01 [Kdma2@maroon02:~/cs232/proj01/Debug$ ./proj01 -r100 -p -t
+========================================================================================
+
+++++++++++++++++++++++++++++++++++++++++   START   +++++++++++++++++++++++++++++++++++++++ 
+
+You requested for the computation to be repeated 100 times.
+You have requested the time needed to create a process.
+You have requested the time needed to create a thread.
+The parent PID  = 23195
+Hello from the child process (PID = 23196 ) 
+Hello from the child process (PID = 23197 ) 
+Hello from the child process (PID = 23198 ) 
+Hello from the child process (PID = 23199 ) 
+Hello from the child process (PID = 23200 ) 
+Hello from the child process (PID = 23202 ) 
+Hello from the child process (PID = 23201 ) 
+Hello from the child process (PID = 23204 ) 
+Hello from the child process (PID = 23206 ) 
+Hello from the child process (PID = 23203 ) 
+Hello from the child process (PID = 23208 ) 
+Hello from the child process (PID = 23209 ) 
+Hello from the child process (PID = 23205 ) 
+Hello from the child process (PID = 23207 ) 
+Hello from the child process (PID = 23211 ) 
+Hello from the child process (PID = 23210 ) 
+Hello from the child process (PID = 23214 ) 
+Hello from the child process (PID = 23213 ) 
+Hello from the child process (PID = 23212 ) 
+Hello from the child process (PID = 23216 ) 
+Hello from the child process (PID = 23218 ) 
+Hello from the child process (PID = 23215 ) 
+Hello from the child process (PID = 23220 ) 
+Hello from the child process (PID = 23219 ) 
+Hello from the child process (PID = 23222 ) 
+Hello from the child process (PID = 23217 ) 
+Hello from the child process (PID = 23221 ) 
+Hello from the child process (PID = 23225 ) 
+Hello from the child process (PID = 23223 ) 
+Hello from the child process (PID = 23224 ) 
+Hello from the child process (PID = 23228 ) 
+Hello from the child process (PID = 23226 ) 
+Hello from the child process (PID = 23230 ) 
+Hello from the child process (PID = 23227 ) 
+Hello from the child process (PID = 23232 ) 
+Hello from the child process (PID = 23229 ) 
+Hello from the child process (PID = 23233 ) 
+Hello from the child process (PID = 23235 ) 
+Hello from the child process (PID = 23234 ) 
+Hello from the child process (PID = 23236 ) 
+Hello from the child process (PID = 23237 ) 
+Hello from the child process (PID = 23241 ) 
+Hello from the child process (PID = 23239 ) 
+Hello from the child process (PID = 23243 ) 
+Hello from the child process (PID = 23240 ) 
+Hello from the child process (PID = 23238 ) 
+Hello from the child process (PID = 23242 ) 
+Hello from the child process (PID = 23245 ) 
+Hello from the child process (PID = 23246 ) 
+Hello from the child process (PID = 23244 ) 
+Hello from the child process (PID = 23251 ) 
+Hello from the child process (PID = 23249 ) 
+Hello from the child process (PID = 23247 ) 
+Hello from the child process (PID = 23248 ) 
+Hello from the child process (PID = 23250 ) 
+Hello from the child process (PID = 23253 ) 
+Hello from the child process (PID = 23254 ) 
+Hello from the child process (PID = 23256 ) 
+Hello from the child process (PID = 23252 ) 
+Hello from the child process (PID = 23262 ) 
+Hello from the child process (PID = 23259 ) 
+Hello from the child process (PID = 23257 ) 
+Hello from the child process (PID = 23263 ) 
+Hello from the child process (PID = 23260 ) 
+Hello from the child process (PID = 23258 ) 
+Hello from the child process (PID = 23255 ) 
+Hello from the child process (PID = 23265 ) 
+Hello from the child process (PID = 23261 ) 
+Hello from the child process (PID = 23267 ) 
+Hello from the child process (PID = 23264 ) 
+Hello from the child process (PID = 23266 ) 
+Hello from the child process (PID = 23268 ) 
+Hello from the child process (PID = 23272 ) 
+Hello from the child process (PID = 23271 ) 
+Hello from the child process (PID = 23273 ) 
+Hello from the child process (PID = 23269 ) 
+Hello from the child process (PID = 23275 ) 
+Hello from the child process (PID = 23276 ) 
+Hello from the child process (PID = 23274 ) 
+Hello from the child process (PID = 23270 ) 
+Hello from the child process (PID = 23277 ) 
+Hello from the child process (PID = 23282 ) 
+Hello from the child process (PID = 23278 ) 
+Hello from the child process (PID = 23280 ) 
+Hello from the child process (PID = 23284 ) 
+Hello from the child process (PID = 23283 ) 
+Hello from the child process (PID = 23279 ) 
+Hello from the child process (PID = 23281 ) 
+Hello from the child process (PID = 23285 ) 
+Hello from the child process (PID = 23291 ) 
+Hello from the child process (PID = 23289 ) 
+Hello from the child process (PID = 23231 ) 
+Hello from the child process (PID = 23290 ) 
+Hello from the child process (PID = 23286 ) 
+Hello from the child process (PID = 23292 ) 
+Hello from the child process (PID = 23287 ) 
+Hello from the child process (PID = 23294 ) 
+Hello from the child process (PID = 23288 ) 
+Hello from the child process (PID = 23295 ) 
+Hello from the child process (PID = 23293 ) 
+
+Average time taken for a process to be created  =  4.86314e-05s 
+
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+Hello from the child thread ( TID = 140489106233088  ) 
+
+Average time taken for a thread to be created  =  6.68533e-05s 
+
+
+++++++++++++++++++++++++++++++++++++++++   END   +++++++++++++++++++++++++++++++++++++++ 
+
+dma2@maroon02:~/cs232/proj01/Debug$ ./proj01 -r100 -p -t          process -r100 -thread
+========================================================================================
+
+++++++++++++++++++++++++++++++++++++++++   START   +++++++++++++++++++++++++++++++++++++++ 
+
+You have requested the time needed to create a process.
+You requested for the computation to be repeated 100 times.
+You have requested the time needed to create a thread.
+The parent PID  = 23397
+Hello from the child process (PID = 23398 ) 
+Hello from the child process (PID = 23399 ) 
+Hello from the child process (PID = 23400 ) 
+Hello from the child process (PID = 23401 ) 
+Hello from the child process (PID = 23402 ) 
+Hello from the child process (PID = 23403 ) 
+Hello from the child process (PID = 23404 ) 
+Hello from the child process (PID = 23406 ) 
+Hello from the child process (PID = 23405 ) 
+Hello from the child process (PID = 23407 ) 
+Hello from the child process (PID = 23408 ) 
+Hello from the child process (PID = 23409 ) 
+Hello from the child process (PID = 23411 ) 
+Hello from the child process (PID = 23410 ) 
+Hello from the child process (PID = 23412 ) 
+Hello from the child process (PID = 23413 ) 
+Hello from the child process (PID = 23414 ) 
+Hello from the child process (PID = 23415 ) 
+Hello from the child process (PID = 23416 ) 
+Hello from the child process (PID = 23418 ) 
+Hello from the child process (PID = 23417 ) 
+Hello from the child process (PID = 23419 ) 
+Hello from the child process (PID = 23420 ) 
+Hello from the child process (PID = 23421 ) 
+Hello from the child process (PID = 23422 ) 
+Hello from the child process (PID = 23424 ) 
+Hello from the child process (PID = 23423 ) 
+Hello from the child process (PID = 23425 ) 
+Hello from the child process (PID = 23427 ) 
+Hello from the child process (PID = 23426 ) 
+Hello from the child process (PID = 23428 ) 
+Hello from the child process (PID = 23429 ) 
+Hello from the child process (PID = 23431 ) 
+Hello from the child process (PID = 23432 ) 
+Hello from the child process (PID = 23430 ) 
+Hello from the child process (PID = 23433 ) 
+Hello from the child process (PID = 23434 ) 
+Hello from the child process (PID = 23437 ) 
+Hello from the child process (PID = 23436 ) 
+Hello from the child process (PID = 23435 ) 
+Hello from the child process (PID = 23438 ) 
+Hello from the child process (PID = 23439 ) 
+Hello from the child process (PID = 23440 ) 
+Hello from the child process (PID = 23441 ) 
+Hello from the child process (PID = 23442 ) 
+Hello from the child process (PID = 23443 ) 
+Hello from the child process (PID = 23444 ) 
+Hello from the child process (PID = 23445 ) 
+Hello from the child process (PID = 23446 ) 
+Hello from the child process (PID = 23447 ) 
+Hello from the child process (PID = 23448 ) 
+Hello from the child process (PID = 23451 ) 
+Hello from the child process (PID = 23452 ) 
+Hello from the child process (PID = 23449 ) 
+Hello from the child process (PID = 23450 ) 
+Hello from the child process (PID = 23453 ) 
+Hello from the child process (PID = 23455 ) 
+Hello from the child process (PID = 23457 ) 
+Hello from the child process (PID = 23456 ) 
+Hello from the child process (PID = 23454 ) 
+Hello from the child process (PID = 23458 ) 
+Hello from the child process (PID = 23459 ) 
+Hello from the child process (PID = 23462 ) 
+Hello from the child process (PID = 23461 ) 
+Hello from the child process (PID = 23464 ) 
+Hello from the child process (PID = 23460 ) 
+Hello from the child process (PID = 23463 ) 
+Hello from the child process (PID = 23466 ) 
+Hello from the child process (PID = 23465 ) 
+Hello from the child process (PID = 23467 ) 
+Hello from the child process (PID = 23468 ) 
+Hello from the child process (PID = 23469 ) 
+Hello from the child process (PID = 23473 ) 
+Hello from the child process (PID = 23475 ) 
+Hello from the child process (PID = 23471 ) 
+Hello from the child process (PID = 23472 ) 
+Hello from the child process (PID = 23474 ) 
+Hello from the child process (PID = 23470 ) 
+Hello from the child process (PID = 23479 ) 
+Hello from the child process (PID = 23476 ) 
+Hello from the child process (PID = 23477 ) 
+Hello from the child process (PID = 23480 ) 
+Hello from the child process (PID = 23481 ) 
+Hello from the child process (PID = 23482 ) 
+Hello from the child process (PID = 23478 ) 
+Hello from the child process (PID = 23484 ) 
+Hello from the child process (PID = 23485 ) 
+Hello from the child process (PID = 23483 ) 
+Hello from the child process (PID = 23486 ) 
+Hello from the child process (PID = 23490 ) 
+Hello from the child process (PID = 23488 ) 
+Hello from the child process (PID = 23489 ) 
+Hello from the child process (PID = 23491 ) 
+Hello from the child process (PID = 23487 ) 
+Hello from the child process (PID = 23493 ) 
+Hello from the child process (PID = 23495 ) 
+Hello from the child process (PID = 23497 ) 
+Hello from the child process (PID = 23492 ) 
+Hello from the child process (PID = 23494 ) 
+Hello from the child process (PID = 23496 ) 
+
+Average time taken for a process to be created  =  4.29891e-05s 
+
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+Hello from the child thread ( TID = 139821597566720  ) 
+
+Average time taken for a thread to be created  =  7.27254e-05s 
+
+
+++++++++++++++++++++++++++++++++++++++++   END   +++++++++++++++++++++++++++++++++++++++ 
+
+dma2@maroon02:~/cs232/proj01/Debug$ ./proj01 -process -r100 -thread                     -thread -r100
+========================================================================================
+
+++++++++++++++++++++++++++++++++++++++++   START   +++++++++++++++++++++++++++++++++++++++ 
+
+You have requested the time needed to create a process.
+You have requested the time needed to create a thread.
+You requested for the computation to be repeated 100 times.
+The parent PID  = 23603
+Hello from the child process (PID = 23604 ) 
+Hello from the child process (PID = 23605 ) 
+Hello from the child process (PID = 23606 ) 
+Hello from the child process (PID = 23607 ) 
+Hello from the child process (PID = 23608 ) 
+Hello from the child process (PID = 23610 ) 
+Hello from the child process (PID = 23611 ) 
+Hello from the child process (PID = 23613 ) 
+Hello from the child process (PID = 23614 ) 
+Hello from the child process (PID = 23609 ) 
+Hello from the child process (PID = 23616 ) 
+Hello from the child process (PID = 23612 ) 
+Hello from the child process (PID = 23619 ) 
+Hello from the child process (PID = 23615 ) 
+Hello from the child process (PID = 23618 ) 
+Hello from the child process (PID = 23617 ) 
+Hello from the child process (PID = 23622 ) 
+Hello from the child process (PID = 23620 ) 
+Hello from the child process (PID = 23621 ) 
+Hello from the child process (PID = 23624 ) 
+Hello from the child process (PID = 23625 ) 
+Hello from the child process (PID = 23623 ) 
+Hello from the child process (PID = 23627 ) 
+Hello from the child process (PID = 23626 ) 
+Hello from the child process (PID = 23631 ) 
+Hello from the child process (PID = 23628 ) 
+Hello from the child process (PID = 23630 ) 
+Hello from the child process (PID = 23629 ) 
+Hello from the child process (PID = 23632 ) 
+Hello from the child process (PID = 23637 ) 
+Hello from the child process (PID = 23633 ) 
+Hello from the child process (PID = 23638 ) 
+Hello from the child process (PID = 23635 ) 
+Hello from the child process (PID = 23639 ) 
+Hello from the child process (PID = 23640 ) 
+Hello from the child process (PID = 23643 ) 
+Hello from the child process (PID = 23641 ) 
+Hello from the child process (PID = 23634 ) 
+Hello from the child process (PID = 23646 ) 
+Hello from the child process (PID = 23644 ) 
+Hello from the child process (PID = 23636 ) 
+Hello from the child process (PID = 23648 ) 
+Hello from the child process (PID = 23642 ) 
+Hello from the child process (PID = 23649 ) 
+Hello from the child process (PID = 23652 ) 
+Hello from the child process (PID = 23651 ) 
+Hello from the child process (PID = 23645 ) 
+Hello from the child process (PID = 23656 ) 
+Hello from the child process (PID = 23654 ) 
+Hello from the child process (PID = 23650 ) 
+Hello from the child process (PID = 23647 ) 
+Hello from the child process (PID = 23653 ) 
+Hello from the child process (PID = 23658 ) 
+Hello from the child process (PID = 23660 ) 
+Hello from the child process (PID = 23659 ) 
+Hello from the child process (PID = 23657 ) 
+Hello from the child process (PID = 23655 ) 
+Hello from the child process (PID = 23666 ) 
+Hello from the child process (PID = 23661 ) 
+Hello from the child process (PID = 23663 ) 
+Hello from the child process (PID = 23665 ) 
+Hello from the child process (PID = 23668 ) 
+Hello from the child process (PID = 23667 ) 
+Hello from the child process (PID = 23673 ) 
+Hello from the child process (PID = 23671 ) 
+Hello from the child process (PID = 23664 ) 
+Hello from the child process (PID = 23662 ) 
+Hello from the child process (PID = 23669 ) 
+Hello from the child process (PID = 23670 ) 
+Hello from the child process (PID = 23674 ) 
+Hello from the child process (PID = 23675 ) 
+Hello from the child process (PID = 23678 ) 
+Hello from the child process (PID = 23672 ) 
+Hello from the child process (PID = 23676 ) 
+Hello from the child process (PID = 23680 ) 
+Hello from the child process (PID = 23684 ) 
+Hello from the child process (PID = 23679 ) 
+Hello from the child process (PID = 23677 ) 
+Hello from the child process (PID = 23681 ) 
+Hello from the child process (PID = 23685 ) 
+Hello from the child process (PID = 23687 ) 
+Hello from the child process (PID = 23689 ) 
+Hello from the child process (PID = 23686 ) 
+Hello from the child process (PID = 23690 ) 
+Hello from the child process (PID = 23688 ) 
+Hello from the child process (PID = 23692 ) 
+Hello from the child process (PID = 23694 ) 
+Hello from the child process (PID = 23691 ) 
+Hello from the child process (PID = 23696 ) 
+Hello from the child process (PID = 23693 ) 
+Hello from the child process (PID = 23699 ) 
+Hello from the child process (PID = 23702 ) 
+Hello from the child process (PID = 23683 ) 
+Hello from the child process (PID = 23698 ) 
+Hello from the child process (PID = 23695 ) 
+Hello from the child process (PID = 23701 ) 
+Hello from the child process (PID = 23697 ) 
+Hello from the child process (PID = 23703 ) 
+Hello from the child process (PID = 23682 ) 
+Hello from the child process (PID = 23700 ) 
+
+Average time taken for a process to be created  =  4.8215e-05s 
+
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+Hello from the child thread ( TID = 139778826925824  ) 
+
+Average time taken for a thread to be created  =  7.12613e-05s 
+
+
+++++++++++++++++++++++++++++++++++++++++   END   +++++++++++++++++++++++++++++++++++++++ 
+
+dma2@maroon02:~/cs232/proj01/Debug$ ./proj01 -p -thread -r100               r100 -t -process -tomato
+========================================================================================
+
+++++++++++++++++++++++++++++++++++++++++   START   +++++++++++++++++++++++++++++++++++++++ 
+
+You requested for the computation to be repeated 100 times.
+You have requested the time needed to create a thread.
+You have requested the time needed to create a process.
+You have entered an invalid command 
+The parent PID  = 23812
+Hello from the child process (PID = 23813 ) 
+Hello from the child process (PID = 23814 ) 
+Hello from the child process (PID = 23815 ) 
+Hello from the child process (PID = 23816 ) 
+Hello from the child process (PID = 23817 ) 
+Hello from the child process (PID = 23819 ) 
+Hello from the child process (PID = 23818 ) 
+Hello from the child process (PID = 23822 ) 
+Hello from the child process (PID = 23823 ) 
+Hello from the child process (PID = 23821 ) 
+Hello from the child process (PID = 23820 ) 
+Hello from the child process (PID = 23825 ) 
+Hello from the child process (PID = 23824 ) 
+Hello from the child process (PID = 23828 ) 
+Hello from the child process (PID = 23827 ) 
+Hello from the child process (PID = 23826 ) 
+Hello from the child process (PID = 23831 ) 
+Hello from the child process (PID = 23833 ) 
+Hello from the child process (PID = 23829 ) 
+Hello from the child process (PID = 23834 ) 
+Hello from the child process (PID = 23835 ) 
+Hello from the child process (PID = 23832 ) 
+Hello from the child process (PID = 23836 ) 
+Hello from the child process (PID = 23830 ) 
+Hello from the child process (PID = 23838 ) 
+Hello from the child process (PID = 23837 ) 
+Hello from the child process (PID = 23839 ) 
+Hello from the child process (PID = 23844 ) 
+Hello from the child process (PID = 23841 ) 
+Hello from the child process (PID = 23843 ) 
+Hello from the child process (PID = 23847 ) 
+Hello from the child process (PID = 23840 ) 
+Hello from the child process (PID = 23845 ) 
+Hello from the child process (PID = 23846 ) 
+Hello from the child process (PID = 23842 ) 
+Hello from the child process (PID = 23848 ) 
+Hello from the child process (PID = 23853 ) 
+Hello from the child process (PID = 23852 ) 
+Hello from the child process (PID = 23851 ) 
+Hello from the child process (PID = 23854 ) 
+Hello from the child process (PID = 23855 ) 
+Hello from the child process (PID = 23850 ) 
+Hello from the child process (PID = 23849 ) 
+Hello from the child process (PID = 23860 ) 
+Hello from the child process (PID = 23856 ) 
+Hello from the child process (PID = 23858 ) 
+Hello from the child process (PID = 23857 ) 
+Hello from the child process (PID = 23861 ) 
+Hello from the child process (PID = 23859 ) 
+Hello from the child process (PID = 23864 ) 
+Hello from the child process (PID = 23863 ) 
+Hello from the child process (PID = 23862 ) 
+Hello from the child process (PID = 23866 ) 
+Hello from the child process (PID = 23867 ) 
+Hello from the child process (PID = 23865 ) 
+Hello from the child process (PID = 23871 ) 
+Hello from the child process (PID = 23870 ) 
+Hello from the child process (PID = 23869 ) 
+Hello from the child process (PID = 23868 ) 
+Hello from the child process (PID = 23876 ) 
+Hello from the child process (PID = 23872 ) 
+Hello from the child process (PID = 23874 ) 
+Hello from the child process (PID = 23873 ) 
+Hello from the child process (PID = 23878 ) 
+Hello from the child process (PID = 23877 ) 
+Hello from the child process (PID = 23879 ) 
+Hello from the child process (PID = 23880 ) 
+Hello from the child process (PID = 23883 ) 
+Hello from the child process (PID = 23875 ) 
+Hello from the child process (PID = 23882 ) 
+Hello from the child process (PID = 23881 ) 
+Hello from the child process (PID = 23886 ) 
+Hello from the child process (PID = 23887 ) 
+Hello from the child process (PID = 23885 ) 
+Hello from the child process (PID = 23888 ) 
+Hello from the child process (PID = 23890 ) 
+Hello from the child process (PID = 23891 ) 
+Hello from the child process (PID = 23893 ) 
+Hello from the child process (PID = 23889 ) 
+Hello from the child process (PID = 23899 ) 
+Hello from the child process (PID = 23896 ) 
+Hello from the child process (PID = 23901 ) 
+Hello from the child process (PID = 23894 ) 
+Hello from the child process (PID = 23898 ) 
+Hello from the child process (PID = 23897 ) 
+Hello from the child process (PID = 23902 ) 
+Hello from the child process (PID = 23895 ) 
+Hello from the child process (PID = 23907 ) 
+Hello from the child process (PID = 23892 ) 
+Hello from the child process (PID = 23904 ) 
+Hello from the child process (PID = 23906 ) 
+Hello from the child process (PID = 23900 ) 
+Hello from the child process (PID = 23908 ) 
+Hello from the child process (PID = 23884 ) 
+Hello from the child process (PID = 23910 ) 
+Hello from the child process (PID = 23909 ) 
+Hello from the child process (PID = 23905 ) 
+Hello from the child process (PID = 23903 ) 
+Hello from the child process (PID = 23912 ) 
+Hello from the child process (PID = 23911 ) 
+
+Average time taken for a process to be created  =  4.6899e-05s 
+
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+Hello from the child thread ( TID = 140444207511296  ) 
+
+Average time taken for a thread to be created  =  7.46237e-05s 
+
+
+++++++++++++++++++++++++++++++++++++++++   END   +++++++++++++++++++++++++++++++++++++++ 
+
+dma2@maroon02:~/cs232/proj01/Debug$ a2ps typs escrit pt
+a2ps: cannot open file `typescript': No such file or directory
+[typescript (unprintable): ignored]
+[No output produced]
+dma2@maroon02:~/cs232/proj01/Debug$ cd ..
+dma2@maroon02:~/cs232/proj01$ ls
+Debug  main.cpp  NanoTimer.h  typescript
+dma2@maroon02:~/cs232/proj01$ a2ps typescript
+[typescript (plain): 0 pages on 0 sheets]
+request id is Calvin_UniFLOW-1 (0 file(s))
+[Total: 0 pages on 0 sheets] sent to the default printer
+dma2@maroon02:~/cs232/proj01$ exit
+
+Script done on Wed 13 Feb 2019 05:56:45 PM EST

@@ -1,0 +1,1722 @@
+Script started on Mon 04 Mar 2019 05:46:21 PM EST
+dma2@maroon26:~/cs232/proj1.5$ cat callTimer.cpp
+/* callTimer.cpp evaluates the command-line and launches the reqiutred controller class.
+ * author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+
+#include "callTimer.h"
+
+callTimer::callTimer() {
+	// TODO Auto-generated constructor stub
+
+}
+
+
+/* getInput()
+ * @param: int argc, 
+ * 		   char* argv[]
+ * Function: Evalutes the command line and launches the appropirate controller class.
+ * return: none
+ */
+
+void callTimer::getInput(int argc, char* argv[]) {
+	for (int i = 1; i < argc; ++i) {
+
+		if (string(argv[1]).substr(0, 3) == "-cl") {
+			cout << "You have requested the command Line interface." << endl;
+			cmdLineController control;
+			control.manipulate(argc, argv);
+			break;
+
+		} else {
+			cerr << "You have requested the text Menu interface. " << endl;
+
+			textInterface receiver;
+			receiver.processInput() ;
+		}
+	}
+
+}
+
+callTimer::~callTimer() {
+
+}
+
+dma2@maroon26:~/cs232/proj1.5$ cat callTimer.h
+/*
+ * callTimer.h
+ *
+ *  Created on: Feb 23, 2019
+ *      Author: dma2
+ */
+
+#ifndef CALLTIMER_H_
+#define CALLTIMER_H_
+
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
+#include <string>       	// string to int
+#include <stdio.h>
+#include <unistd.h>     	// to include fork(), getpid()
+#include <sstream>			// stringstream
+#include "NanoTimer.h"		// NanaTimer.h
+#include <pthread.h>		// pthread
+#include <sys/wait.h>		// wait()
+#include "cmdLineController.h"
+#include "textController.h"
+#include "model.h"
+#include "cmdLineInterface.h"
+#include "textInterface.h"
+using namespace std;
+
+
+class callTimer {
+public:
+	callTimer();
+	void getInput(int argc, char* argv[]);
+	virtual ~callTimer();
+};
+
+#endif /* CALLTIMER_H_ */
+dma2@maroon26:~/cs232/proj1.5$ cat cmdLineControlla er.cpp
+/* cmdLineController.cpp evaluates the command-line instructions,
+ * calls the model class to excecute them, calls the cmdInterface class to dispaly them..
+ * Author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+
+#include "cmdLineController.h"
+#include "callTimer.h"
+
+
+
+
+model run;
+cmdLineInterface view;
+
+/* constructor
+ * @param: void
+ * function: instantiates the bools process and thread.
+ * return: NULL
+ */
+cmdLineController::cmdLineController() {
+	process = false;
+	thread = false;
+
+}
+
+
+/* manipulate()
+ * @param: int argc, 
+ * 		   char* argv[]
+ * Function: Evalutes the command line with the help of the bool switches and calls 
+ * the model class to perform the computations. 
+ * return: none
+ */
+void cmdLineController::manipulate(int argc, char* argv[]) {
+	cmdLineInterface input;
+	input.processInput(argc, argv);
+	if (input.getProcess()) {
+
+
+		pid_t pid = run.processCalculate(input.getRepeat());
+		if (pid == 0) {
+			process = false;
+			return;
+		}
+
+	}
+
+	if (input.getThread()) {
+
+			run.threadCalculate(input.getRepeat());
+
+			thread = false;
+		}
+
+}
+
+
+/* receivePID()
+ * @param: none
+ * Function: Receives the process id from the model class 
+ * return: none
+ */
+void cmdLineController::receivePID(){
+
+	view.displayProcessResults();
+
+}
+
+
+/* receiveTID()
+ * @param: none
+ * Function: Receives the thread id from the model class 
+ * return: none
+ */
+void cmdLineController::receiveTID(){
+	
+	view.displayThreadResults();
+
+}
+
+/* receiveProcessTime()
+ * @param: double processTime
+ * Function: Receives the average time taken for n processes to be creaated. 
+ * return: processTime
+ */
+double cmdLineController::receiveProcessTime( double processTime){
+	view.displayProcessTime(processTime);
+	return processTime;
+	
+
+}
+
+
+/* receiveThreadTime()
+ * @param: double threadTime
+ * Function: Receives the average time taken for n threads to be creaated. 
+ * return: threadTime
+ */
+double cmdLineController::receiveThreadTime( double threadTime){
+	view.displayThreadTime(threadTime);
+	return threadTime;
+}
+
+/* destructor
+ * @param: void
+ * return: NULL
+ */
+cmdLineController::~cmdLineController() {
+
+}
+
+dma2@maroon26:~/cs232/proj1.5$ cat cmdLineController.h
+/* cmdLineController.h declares the cmdLineController class
+ * Author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+
+#ifndef CMDLINECONTROLLER_H_
+#define CMDLINECONTROLLER_H_
+
+class cmdLineController {
+public:
+	cmdLineController();
+	void manipulate(int argc, char* argv[]);
+	void receivePID();
+	double receiveProcessTime( double processTime);
+	double receiveThreadTime( double threadTime);
+	void receiveTID();
+	virtual ~cmdLineController();
+
+private:
+
+	bool process;
+	bool thread;
+	friend class model;
+	friend class cmdLineInterface;
+};
+
+#endif /* CMDLINECONTROLLER_H_ */
+dma2@maroon26:~/cs232/proj1.5$ cat cmdLineInterface.cpp
+/* cmdLineInterface.cpp receives and sends I/O to the user.
+ * Author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+#include "cmdLineInterface.h"
+
+
+/* constructor
+ * @param: void
+ * function: instantiates the repeat variable
+ * return: NULL
+ */
+cmdLineInterface::cmdLineInterface() { // @suppress("Class members should be properly initialized")
+	repeat = 1;
+
+}
+
+/* processInput()
+ * @param: int argc, 
+ * 		   char* argv[]
+ * Function: Evalutes the command line and triggers the appropirate switches.
+ * return: none
+ */
+void cmdLineInterface::processInput(int argc, char* argv[]) {
+
+	for (int i = 2; i < argc; ++i) {
+
+		if (string(argv[i]).substr(0, 2) == "-r") { // The values in the adresses contained in argv[] are converted into strings and compared against the command line switches.
+			string holder = string(argv[i]).substr(2, string(argv[i]).length()); // converts the argv[i] into int
+			stringstream test(holder);
+			test >> repeat;
+			if (repeat < 1) {
+				repeat = 1;
+			}
+
+			cout << "You requested for the computation(s) to be repeated "
+					<< repeat << " times." << endl;
+		}
+
+		else if (string(argv[i]) == "-p" || string(argv[i]) == "-process") {
+			process = true;
+			cout << "You have requested the average time needed to create a process."
+					<< endl;
+		} else if (string(argv[i]) == "-t" || string(argv[i]) == "-thread") {
+			thread = true;
+			cout << "You have requested the average time needed to create a thread."
+					<< endl;
+		} else {
+			cerr << string(argv[i]) << "  You have entered an invalid command "
+					<< endl;
+		}
+	}
+
+	cout << "\n" << endl;
+
+}
+
+
+/* displayProcessResults()
+ * @param: none
+ * Function: Displays the process id 
+ * return: none
+ */
+void cmdLineInterface::displayProcessResults() {
+	// cout << "\a" << endl;
+	cout << "Hello from the child process (PID = " << getpid() << " ) " << endl;
+
+}
+
+/* displayThreadResults()
+ * @param: none
+ * Function: Displays the thread id 
+ * return: none
+ */
+void cmdLineInterface::displayThreadResults(){
+	cout << "Hello from the child thread ( TID = " << pthread_self() << " ) "
+			<< endl << flush;
+}
+
+/* displayProcessTime()
+ * @param:  double processTime
+ * Function: Displays the average time to create n processes 
+ * return: none
+ */
+void cmdLineInterface::displayProcessTime( double processTime) {
+
+	cout << "\nAverage time taken for a process to be created  =  " << processTime << "s \n" << endl;
+
+}
+
+/* displayThreadTime()
+ * @param:  double threadTime
+ * Function: Displays the average time to create n threads 
+ * return: none
+ */
+void cmdLineInterface::displayThreadTime( double threadTime) {
+	cout << "\nAverage time taken for a thread to be created  =  " << threadTime << "s \n" << endl;
+}
+
+
+/* destructor
+ * @param: void
+ * return: NULL
+ */
+cmdLineInterface::~cmdLineInterface() {
+	// TODO Auto-generated destructor stub
+}
+
+dma2@maroon26:~/cs232/proj1.5$ cat cmdLineInterface.h
+/* cmdLineInterface.h declares the cmdInterface class
+ * Author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+
+#ifndef CMDLINEINTERFACE_H_
+#define CMDLINEINTERFACE_H_
+#include "callTimer.h"
+
+class cmdLineInterface {
+	friend class cmdLineController;
+public:
+	cmdLineInterface();
+	void processInput(int argc, char* argv[]);
+	virtual ~cmdLineInterface();
+	unsigned getRepeat(){return repeat;	};
+	bool getProcess(){return process; };
+	bool getThread(){return thread; };
+	void displayProcessResults();
+	void displayProcessTime(double processTime);
+	void displayThreadTime( double threadTime);
+	void displayThreadResults();
+
+
+private:
+	unsigned repeat;
+	bool process;
+	bool thread;
+
+
+};
+
+#endif /* CMDLINEINTERFACE_H_ */
+dma2@maroon26:~/cs232/proj1.5$ cat main.cpp
+/* Name: Daniel Ackuaku
+ * Date: 28th February 2019.
+ * Class: CS 232
+ * Project 1.5 : User Interfaces and Reuseable Code
+ */
+
+#include "callTimer.h"
+
+/* main
+ * @param: int argc, char* argv[]
+ * Precondition: requires commad line input.
+ * Postcondition: it runs the program.
+ * return: 0
+ */
+int main(int argc, char* argv[]) {
+	cout << "________________________________________________________________________" << endl;
+	cout << "\n                               Welcome !                                " << endl;
+	cout << "________________________________________________________________________" << endl;
+	
+// Instantiates the callTimer class to handle the rest of program.
+	callTimer program;
+	program.getInput(argc, argv);
+
+
+}
+
+dma2@maroon26:~/cs232/proj1.5$ cat model.cpp
+/* model.cpp forks the process and spwans the threads and times how 
+ * long these events take.
+ * author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+
+#include "model.h"
+#include "callTimer.h"
+
+
+/* constructor
+ * @param: void
+ * function: instantiates the processAverageTime &  threadAverageTime variables.
+ * return: NULL
+ */
+model::model() {
+	processAverageTime = 0;
+	threadAverageTime = 0;
+
+}
+
+/* processCalculate()
+ * @param: unsigned repeat
+ * Function: Creates a process, forks the process "repeat" times and returns the process id.
+ * return: pid
+ */
+pid_t model::processCalculate(unsigned repeat) {
+
+	NanoTimer timer;
+	
+	pid_t pid;
+	cmdLineController processID;
+	textController textProcessID;
+	for (unsigned i = 1; i < (repeat + 1); i++) {
+		timer.start();
+		pid = fork();               //Performs the fork.
+		timer.stop();
+
+		if (pid == 0) {
+			
+			processID.receivePID();
+			return pid;
+		}
+		wait(NULL);
+	}
+	processAverageTime = timer.getTotalTime() / repeat;
+	timer.reset();
+	processID.receiveProcessTime(getProcessTime());
+
+
+	return pid;
+}
+
+
+
+/* threadHello()
+ * @param: void *threadid
+ * Function: thread pointer
+ * return: none
+ */
+void *threadHello(void *threadid) {
+	return 0;
+}
+
+
+/* threadCalculate()
+ * @param: unsigned repeat
+ * Function: Creates a thread, spawns the thread "repeat" times and returns the thread id.
+ * return: none
+ */
+void model::threadCalculate(unsigned repeat) {
+
+	NanoTimer timerT;
+
+	pthread_t my_threads;
+	cmdLineController threadID;
+	for (unsigned i = 0; i < repeat; i++) {
+		timerT.start();
+		pthread_create(&my_threads, NULL, &threadHello, (void*) my_threads);
+		timerT.stop();
+		
+		threadID.receiveTID();
+		pthread_join(my_threads, NULL); // A call to pthread_join blocks the calling thread until the thread with identifier equal to the first argument terminates.
+		threadAverageTime = timerT.getTotalTime();
+		timerT.reset();
+
+		
+
+	}
+threadID.receiveThreadTime(getThreadTime());
+
+	return;
+
+}
+
+
+/* destructor
+ * @param: void
+ * return: NULL
+ */
+model::~model() {
+
+}
+
+dma2@maroon26:~/cs232/proj1.5$ cat model.h
+/* model.h declares the model class
+ * Author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+typedef int pid_t;
+#ifndef MODEL_H_
+#define MODEL_H_
+
+class model {
+	friend class cmdLineInterface;
+public:
+	model();
+	pid_t processCalculate(unsigned repeat);
+	void threadCalculate(unsigned repeat);
+	double getProcessTime(){ return processAverageTime; };
+	double getThreadTime(){ return threadAverageTime; };
+	pid_t textProcessCalculate(unsigned repeat);
+	virtual ~model();
+
+private :
+	double processAverageTime;
+	double threadAverageTime;
+
+};
+
+#endif /* MODEL_H_ */
+dma2@maroon26:~/cs232/proj1.5$ cat Nano    textController.cpp
+/* textController.cpp evaluates the text menu option,
+ *  calls the model class to excecute them, and calls the textInterface class to dispaly them..
+ * Author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+
+#include "textController.h"
+#include "callTimer.h"
+
+model run2;
+textInterface view2;
+
+/* constructor
+ * @param: void
+ * function: instantiates the bools processTxt and threadTxt.
+ * return: NULL
+ */
+textController::textController() {
+	processTxt = false;
+	threadTxt = false;
+}
+
+/* processCalculate()
+ * @param: int reps
+ * Function: Calls the model class for processCalculate() to be executed.
+ * return: none
+ * for some reason my textinterface process calculate only performs the function once.
+ */
+void textController::processCalculate(int reps) {
+    model test;
+	textInterface input;
+	if (input.gettxtProcess()) {
+
+	pid_t pid = test.processCalculate(input.getRepeat());
+		if (pid == 0) {
+			processTxt = false;
+			return ;
+		}
+
+	}
+	
+
+}
+
+/* threadCalculate()
+ * @param: int reps
+ * Function: Calls the model class for threadCalculate() to be executed.
+ * return: none
+ * for some reason my textinterface process calculate only performs the function once.
+ */
+void textController::threadCalculate(int reps) {
+	
+	run2.threadCalculate(reps);
+	threadTxt = false;
+}
+
+/* pTCalculate()
+ * @param: int reps
+ * Function: Calls the model class for processCalculate() and threadCalculate() to be executed.
+ * return: none
+ * for some reason my textinterface process calculate only performs the function once.
+ */
+void textController::pTCalculate(int reps) {
+
+run2.threadCalculate(reps);
+	pid_t pid = run2.processCalculate(reps);
+		if (pid == 0) {
+			processTxt = false;
+			// return;
+		}
+
+}
+
+
+/* receivePID()
+ * @param: none
+ * Function: Receives the process id from the model class 
+ * return: none
+ */
+void textController::receivePID(){
+
+	view2.displayProcessResults();
+
+}
+
+
+/* receiveProcessTime()
+ * @param: double processTime
+ * Function: Receives the average time taken for n processes to be creaated. 
+ * return: processTime
+ */
+double textController::receiveProcessTime( double processTime){
+
+	view2.displayProcessTime(processTime);
+
+	return processTime;
+}
+
+/* destructor
+ * @param: void
+ * return: NULL
+ */
+textController::~textController() {
+	
+}
+
+dma2@maroon26:~/cs232/proj1.5$ cat textController.h
+/* textController.h declares the textController class
+ * Author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+#ifndef TEXTCONTROLLER_H_
+#define TEXTCONTROLLER_H_
+#include "callTimer.h"
+#include <string>
+
+class textController {
+public:
+	textController();
+	void processCalculate(int reps);
+	void threadCalculate(int reps);
+	void pTCalculate(int reps);
+	void receivePID();
+	void receiveTID();
+	void receiveTXTPID();
+	double receiveProcessTime( double processTime);
+	virtual ~textController();
+
+private:
+
+	// unsigned repeat;
+	bool processTxt;
+	bool threadTxt;
+	friend class textInterface;
+};
+
+#endif /* TEXTCONTROLLER_H_ */
+dma2@maroon26:~/cs232/proj1.5$ cat textInterface.cpp
+/* textInterface.cpp receives and sends I/O to the user.
+ * Author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+#include "textInterface.h"
+//#include <string>
+
+
+/* constructor
+ * @param: void
+ * function: instantiates the repeat variable
+ * return: NULL
+ */
+textInterface::textInterface() {
+	// TODO Auto-generated constructor stub
+
+}
+
+
+/* processInput()
+ * @param: none
+ * Function: Launches a switch case menu that evalutes user input.
+ * return: none
+ */
+void textInterface::processInput() {
+	string menuCommand;
+	while (menuCommand != "0") {
+	 cout << "\nWelcome to the Text Interface Manager! " << endl;
+	 cout << "\nPlease enter:" << endl;
+	 cout << "   1 - to calculate the average time needed to create a process" << endl;
+     cout << "   2 - to calculate the average time needed to create a thread" << endl;
+     cout << "   3 - to to calculate the average time needed to create a process and a thread simultaneosly" << endl;
+     cout << "   0 - to quit" << endl;
+	 cout << "--->  "	<< endl;
+
+	 
+	 cin >> menuCommand;
+	 cin.ignore();
+
+	 	if (menuCommand == "1") {
+			processTxt = true;
+			cout << "You have requested the average time needed to create a process: " << flush;
+			cout << "How many times would you want this to be repeated: " << flush;
+			cin >> reps;
+			cin.ignore();
+			if (reps < 1 ) {
+				cerr << " The number of times you entered is invalid" << endl;
+				cout << "How many times would you want this to be repeated: " << flush;
+				cin >> reps;
+				cin.ignore();
+			}
+			cout << "You requested for the operation to be repeated " << reps << " times" << endl;
+
+			textController process;
+			process.processCalculate(reps);
+
+			processTxt = false;
+
+		}
+
+		else if (menuCommand == "2") {
+			threadTxt = true;
+			cout << "You have requested the average time needed to create a thread: " << flush;
+			cout << "How many times would you want this to be repeated: " << flush;
+			cin >> reps;
+			cin.ignore();
+			if (reps < 1 ) {
+				cerr << " The number of times you entered is invalid" << endl;
+				cout << "How many times would you want this to be repeated: " << flush;
+				cin >> reps;
+				cin.ignore();
+			}
+			cout << "You requested for the operation to be repeated " << reps << " times" << endl;
+
+			textController thread;
+			thread.threadCalculate(reps);
+
+			threadTxt = false;
+
+		}
+
+		else if (menuCommand == "3") {
+			processAndThread = true;
+			cout << "You have requested the average time needed to create a process and a  thread: " << flush;
+			cout << "How many times would you want this to be repeated: " << flush;
+			cin >> reps;
+			cin.ignore();
+			if (reps < 1 ) {
+				cerr << " The number of times you entered is invalid" << endl;
+				cout << "How many times would you want this to be repeated: " << flush;
+				cin >> reps;
+				cin.ignore();
+			}
+			cout << "You requested for the operation to be repeated " << reps << " times" << endl;
+
+			textController both;
+			both.pTCalculate(reps);
+
+			processAndThread = false;
+
+		}
+		else if (menuCommand == "0") {
+			processAndThread = true;
+			cout << "You have requested to exit the program......" << endl;
+			cout << "________________________________________________________________________" << endl;
+			cout << "\n                               GoodBye !                              " << endl;
+			cout << "________________________________________________________________________" << endl;
+			break;
+
+		}
+		else {
+			cerr << "\nYou've entered an invalid command !! " << endl;
+		}
+
+
+
+	}
+	
+}
+
+/* displayProcessTime()
+ * @param:  double processTime
+ * Function: Displays the average time to create n processes 
+ * return: none
+ */
+void textInterface::displayProcessTime( double processTime) {
+
+	cout << "\nAverage time taken for a process to be created  =  " << processTime << "s \n" << endl;
+
+}
+
+void textInterface::displayProcessResults() {
+	// cout << "\a" << endl;
+	cout << "Hello from the child process (PID = " << getpid() << " ) " << endl;
+
+}
+
+/* destructor
+ * @param: void
+ * return: NULL
+ */
+textInterface::~textInterface() {
+	// TODO Auto-generated destructor stub
+}
+
+
+
+
+dma2@maroon26:~/cs232/proj1.5$ cat testInterface.h
+cat: testInterface.h: No such file or directory
+dma2@maroon26:~/cs232/proj1.5$ cat textInterface.h
+/* textInterface.h declares the cmdInterface class
+ * Author Daniel Ackuaku
+ * CS 232 Calvin college 2019.
+ *  Created on: Feb 23, 2019
+ */
+
+#ifndef TEXTINTERFACE_H_
+#define TEXTINTERFACE_H_
+#include "callTimer.h"
+
+class textInterface {
+public:
+	textInterface();
+	void processInput();
+	virtual ~textInterface();
+	void displayProcessResults();
+	bool gettxtProcess() { return processTxt; };
+	void displayProcessTime( double processTime);
+	bool gettxtThread(){ return threadTxt; };
+	int getRepeat(){  return reps;	};
+	
+	private:
+	friend class textController;
+	int reps;
+	bool processTxt;
+	bool threadTxt;
+	bool processAndThread;
+
+};
+
+#endif /* TEXTINTERFACE_H_ */
+dma2@maroon26:~/cs232/proj1.5$ cc d Debug
+dma2@maroon26:~/cs232/proj1.5/Debug$ make all
+Building file: ../callTimer.cpp
+Invoking: GCC C++ Compiler
+g++ -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"callTimer.d" -MT"callTimer.o" -o "callTimer.o" "../callTimer.cpp"
+Finished building: ../callTimer.cpp
+ 
+Building file: ../cmdLineController.cpp
+Invoking: GCC C++ Compiler
+g++ -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"cmdLineController.d" -MT"cmdLineController.o" -o "cmdLineController.o" "../cmdLineController.cpp"
+Finished building: ../cmdLineController.cpp
+ 
+Building file: ../cmdLineInterface.cpp
+Invoking: GCC C++ Compiler
+g++ -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"cmdLineInterface.d" -MT"cmdLineInterface.o" -o "cmdLineInterface.o" "../cmdLineInterface.cpp"
+Finished building: ../cmdLineInterface.cpp
+ 
+Building file: ../main.cpp
+Invoking: GCC C++ Compiler
+g++ -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"main.d" -MT"main.o" -o "main.o" "../main.cpp"
+Finished building: ../main.cpp
+ 
+Building file: ../model.cpp
+Invoking: GCC C++ Compiler
+g++ -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"model.d" -MT"model.o" -o "model.o" "../model.cpp"
+Finished building: ../model.cpp
+ 
+Building file: ../textController.cpp
+Invoking: GCC C++ Compiler
+g++ -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"textController.d" -MT"textController.o" -o "textController.o" "../textController.cpp"
+Finished building: ../textController.cpp
+ 
+Building file: ../textInterface.cpp
+Invoking: GCC C++ Compiler
+g++ -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"textInterface.d" -MT"textInterface.o" -o "textInterface.o" "../textInterface.cpp"
+Finished building: ../textInterface.cpp
+ 
+Building target: proj1.5
+Invoking: GCC C++ Linker
+g++  -o "proj1.5"  ./callTimer.o ./cmdLineController.o ./cmdLineInterface.o ./main.o ./model.o ./textController.o ./textInterface.o   -lpthread -lrt
+Finished building target: proj1.5
+ 
+dma2@maroon26:~/cs232/proj1.5/Debug$ ./proj1.5 -cl -r100 -p -t 
+________________________________________________________________________
+
+                               Welcome !                                
+________________________________________________________________________
+You have requested the command Line interface.
+You requested for the computation(s) to be repeated 100 times.
+You have requested the average time needed to create a process.
+You have requested the average time needed to create a thread.
+
+
+Hello from the child process (PID = 3188 ) 
+Hello from the child process (PID = 3189 ) 
+Hello from the child process (PID = 3190 ) 
+Hello from the child process (PID = 3191 ) 
+Hello from the child process (PID = 3192 ) 
+Hello from the child process (PID = 3193 ) 
+Hello from the child process (PID = 3194 ) 
+Hello from the child process (PID = 3195 ) 
+Hello from the child process (PID = 3196 ) 
+Hello from the child process (PID = 3197 ) 
+Hello from the child process (PID = 3198 ) 
+Hello from the child process (PID = 3199 ) 
+Hello from the child process (PID = 3200 ) 
+Hello from the child process (PID = 3201 ) 
+Hello from the child process (PID = 3202 ) 
+Hello from the child process (PID = 3203 ) 
+Hello from the child process (PID = 3204 ) 
+Hello from the child process (PID = 3205 ) 
+Hello from the child process (PID = 3206 ) 
+Hello from the child process (PID = 3207 ) 
+Hello from the child process (PID = 3208 ) 
+Hello from the child process (PID = 3210 ) 
+Hello from the child process (PID = 3211 ) 
+Hello from the child process (PID = 3212 ) 
+Hello from the child process (PID = 3213 ) 
+Hello from the child process (PID = 3214 ) 
+Hello from the child process (PID = 3215 ) 
+Hello from the child process (PID = 3217 ) 
+Hello from the child process (PID = 3218 ) 
+Hello from the child process (PID = 3219 ) 
+Hello from the child process (PID = 3221 ) 
+Hello from the child process (PID = 3223 ) 
+Hello from the child process (PID = 3230 ) 
+Hello from the child process (PID = 3233 ) 
+Hello from the child process (PID = 3234 ) 
+Hello from the child process (PID = 3235 ) 
+Hello from the child process (PID = 3236 ) 
+Hello from the child process (PID = 3237 ) 
+Hello from the child process (PID = 3239 ) 
+Hello from the child process (PID = 3240 ) 
+Hello from the child process (PID = 3241 ) 
+Hello from the child process (PID = 3243 ) 
+Hello from the child process (PID = 3245 ) 
+Hello from the child process (PID = 3247 ) 
+Hello from the child process (PID = 3249 ) 
+Hello from the child process (PID = 3250 ) 
+Hello from the child process (PID = 3251 ) 
+Hello from the child process (PID = 3252 ) 
+Hello from the child process (PID = 3253 ) 
+Hello from the child process (PID = 3254 ) 
+Hello from the child process (PID = 3256 ) 
+Hello from the child process (PID = 3257 ) 
+Hello from the child process (PID = 3258 ) 
+Hello from the child process (PID = 3264 ) 
+Hello from the child process (PID = 3265 ) 
+Hello from the child process (PID = 3266 ) 
+Hello from the child process (PID = 3268 ) 
+Hello from the child process (PID = 3276 ) 
+Hello from the child process (PID = 3282 ) 
+Hello from the child process (PID = 3284 ) 
+Hello from the child process (PID = 3285 ) 
+Hello from the child process (PID = 3286 ) 
+Hello from the child process (PID = 3287 ) 
+Hello from the child process (PID = 3288 ) 
+Hello from the child process (PID = 3289 ) 
+Hello from the child process (PID = 3293 ) 
+Hello from the child process (PID = 3294 ) 
+Hello from the child process (PID = 3297 ) 
+Hello from the child process (PID = 3298 ) 
+Hello from the child process (PID = 3299 ) 
+Hello from the child process (PID = 3300 ) 
+Hello from the child process (PID = 3301 ) 
+Hello from the child process (PID = 3305 ) 
+Hello from the child process (PID = 3308 ) 
+Hello from the child process (PID = 3311 ) 
+Hello from the child process (PID = 3312 ) 
+Hello from the child process (PID = 3320 ) 
+Hello from the child process (PID = 3321 ) 
+Hello from the child process (PID = 3324 ) 
+Hello from the child process (PID = 3328 ) 
+Hello from the child process (PID = 3329 ) 
+Hello from the child process (PID = 3330 ) 
+Hello from the child process (PID = 3331 ) 
+Hello from the child process (PID = 3332 ) 
+Hello from the child process (PID = 3335 ) 
+Hello from the child process (PID = 3336 ) 
+Hello from the child process (PID = 3337 ) 
+Hello from the child process (PID = 3340 ) 
+Hello from the child process (PID = 3344 ) 
+Hello from the child process (PID = 3346 ) 
+Hello from the child process (PID = 3348 ) 
+Hello from the child process (PID = 3349 ) 
+Hello from the child process (PID = 3354 ) 
+Hello from the child process (PID = 3356 ) 
+Hello from the child process (PID = 3357 ) 
+Hello from the child process (PID = 3361 ) 
+Hello from the child process (PID = 3362 ) 
+Hello from the child process (PID = 3363 ) 
+Hello from the child process (PID = 3365 ) 
+Hello from the child process (PID = 3366 ) 
+
+Average time taken for a process to be created  =  0.000116266s 
+
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+Hello from the child thread ( TID = 140258378872640 ) 
+
+Average time taken for a thread to be created  =  3.926e-06s 
+
+dma2@maroon26:~/cs232/proj1.5/Debug$ ./proj1.5 -cl -r100 -p -t [1@p[1@ [1@-[1@t[1@ [1@-r100 [1P[1P[1P[1Pt [1P [K
+________________________________________________________________________
+
+                               Welcome !                                
+________________________________________________________________________
+You have requested the command Line interface.
+You have requested the average time needed to create a process.
+You have requested the average time needed to create a thread.
+You requested for the computation(s) to be repeated 100 times.
+
+
+Hello from the child process (PID = 3497 ) 
+Hello from the child process (PID = 3498 ) 
+Hello from the child process (PID = 3499 ) 
+Hello from the child process (PID = 3501 ) 
+Hello from the child process (PID = 3503 ) 
+Hello from the child process (PID = 3504 ) 
+Hello from the child process (PID = 3505 ) 
+Hello from the child process (PID = 3506 ) 
+Hello from the child process (PID = 3509 ) 
+Hello from the child process (PID = 3510 ) 
+Hello from the child process (PID = 3511 ) 
+Hello from the child process (PID = 3512 ) 
+Hello from the child process (PID = 3513 ) 
+Hello from the child process (PID = 3514 ) 
+Hello from the child process (PID = 3515 ) 
+Hello from the child process (PID = 3516 ) 
+Hello from the child process (PID = 3517 ) 
+Hello from the child process (PID = 3518 ) 
+Hello from the child process (PID = 3519 ) 
+Hello from the child process (PID = 3520 ) 
+Hello from the child process (PID = 3521 ) 
+Hello from the child process (PID = 3522 ) 
+Hello from the child process (PID = 3523 ) 
+Hello from the child process (PID = 3524 ) 
+Hello from the child process (PID = 3525 ) 
+Hello from the child process (PID = 3526 ) 
+Hello from the child process (PID = 3527 ) 
+Hello from the child process (PID = 3528 ) 
+Hello from the child process (PID = 3529 ) 
+Hello from the child process (PID = 3530 ) 
+Hello from the child process (PID = 3531 ) 
+Hello from the child process (PID = 3532 ) 
+Hello from the child process (PID = 3533 ) 
+Hello from the child process (PID = 3534 ) 
+Hello from the child process (PID = 3535 ) 
+Hello from the child process (PID = 3536 ) 
+Hello from the child process (PID = 3537 ) 
+Hello from the child process (PID = 3538 ) 
+Hello from the child process (PID = 3539 ) 
+Hello from the child process (PID = 3540 ) 
+Hello from the child process (PID = 3541 ) 
+Hello from the child process (PID = 3542 ) 
+Hello from the child process (PID = 3543 ) 
+Hello from the child process (PID = 3544 ) 
+Hello from the child process (PID = 3545 ) 
+Hello from the child process (PID = 3546 ) 
+Hello from the child process (PID = 3547 ) 
+Hello from the child process (PID = 3548 ) 
+Hello from the child process (PID = 3549 ) 
+Hello from the child process (PID = 3550 ) 
+Hello from the child process (PID = 3551 ) 
+Hello from the child process (PID = 3552 ) 
+Hello from the child process (PID = 3553 ) 
+Hello from the child process (PID = 3554 ) 
+Hello from the child process (PID = 3555 ) 
+Hello from the child process (PID = 3556 ) 
+Hello from the child process (PID = 3557 ) 
+Hello from the child process (PID = 3558 ) 
+Hello from the child process (PID = 3559 ) 
+Hello from the child process (PID = 3560 ) 
+Hello from the child process (PID = 3561 ) 
+Hello from the child process (PID = 3562 ) 
+Hello from the child process (PID = 3563 ) 
+Hello from the child process (PID = 3564 ) 
+Hello from the child process (PID = 3565 ) 
+Hello from the child process (PID = 3566 ) 
+Hello from the child process (PID = 3567 ) 
+Hello from the child process (PID = 3568 ) 
+Hello from the child process (PID = 3569 ) 
+Hello from the child process (PID = 3570 ) 
+Hello from the child process (PID = 3571 ) 
+Hello from the child process (PID = 3572 ) 
+Hello from the child process (PID = 3573 ) 
+Hello from the child process (PID = 3574 ) 
+Hello from the child process (PID = 3575 ) 
+Hello from the child process (PID = 3576 ) 
+Hello from the child process (PID = 3577 ) 
+Hello from the child process (PID = 3578 ) 
+Hello from the child process (PID = 3579 ) 
+Hello from the child process (PID = 3580 ) 
+Hello from the child process (PID = 3581 ) 
+Hello from the child process (PID = 3582 ) 
+Hello from the child process (PID = 3583 ) 
+Hello from the child process (PID = 3584 ) 
+Hello from the child process (PID = 3585 ) 
+Hello from the child process (PID = 3586 ) 
+Hello from the child process (PID = 3587 ) 
+Hello from the child process (PID = 3588 ) 
+Hello from the child process (PID = 3589 ) 
+Hello from the child process (PID = 3590 ) 
+Hello from the child process (PID = 3591 ) 
+Hello from the child process (PID = 3592 ) 
+Hello from the child process (PID = 3593 ) 
+Hello from the child process (PID = 3594 ) 
+Hello from the child process (PID = 3595 ) 
+Hello from the child process (PID = 3596 ) 
+Hello from the child process (PID = 3597 ) 
+Hello from the child process (PID = 3598 ) 
+Hello from the child process (PID = 3599 ) 
+Hello from the child process (PID = 3600 ) 
+
+Average time taken for a process to be created  =  0.000122958s 
+
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+Hello from the child thread ( TID = 140251393038144 ) 
+
+Average time taken for a thread to be created  =  4.154e-06s 
+
+dma2@maroon26:~/cs232/proj1.5/Debug$ ./proj1.5 -cl -p -t -r100 [1P[1P[1P -t [1@p[1P-[1@-[1@p[1@ 
+________________________________________________________________________
+
+                               Welcome !                                
+________________________________________________________________________
+You have requested the command Line interface.
+You have requested the average time needed to create a thread.
+You have requested the average time needed to create a process.
+You requested for the computation(s) to be repeated 100 times.
+
+
+Hello from the child process (PID = 3705 ) 
+Hello from the child process (PID = 3706 ) 
+Hello from the child process (PID = 3707 ) 
+Hello from the child process (PID = 3708 ) 
+Hello from the child process (PID = 3709 ) 
+Hello from the child process (PID = 3710 ) 
+Hello from the child process (PID = 3711 ) 
+Hello from the child process (PID = 3712 ) 
+Hello from the child process (PID = 3713 ) 
+Hello from the child process (PID = 3714 ) 
+Hello from the child process (PID = 3715 ) 
+Hello from the child process (PID = 3716 ) 
+Hello from the child process (PID = 3717 ) 
+Hello from the child process (PID = 3718 ) 
+Hello from the child process (PID = 3719 ) 
+Hello from the child process (PID = 3720 ) 
+Hello from the child process (PID = 3721 ) 
+Hello from the child process (PID = 3722 ) 
+Hello from the child process (PID = 3723 ) 
+Hello from the child process (PID = 3724 ) 
+Hello from the child process (PID = 3725 ) 
+Hello from the child process (PID = 3726 ) 
+Hello from the child process (PID = 3727 ) 
+Hello from the child process (PID = 3728 ) 
+Hello from the child process (PID = 3729 ) 
+Hello from the child process (PID = 3731 ) 
+Hello from the child process (PID = 3732 ) 
+Hello from the child process (PID = 3733 ) 
+Hello from the child process (PID = 3734 ) 
+Hello from the child process (PID = 3738 ) 
+Hello from the child process (PID = 3741 ) 
+Hello from the child process (PID = 3742 ) 
+Hello from the child process (PID = 3747 ) 
+Hello from the child process (PID = 3748 ) 
+Hello from the child process (PID = 3756 ) 
+Hello from the child process (PID = 3757 ) 
+Hello from the child process (PID = 3758 ) 
+Hello from the child process (PID = 3759 ) 
+Hello from the child process (PID = 3760 ) 
+Hello from the child process (PID = 3763 ) 
+Hello from the child process (PID = 3771 ) 
+Hello from the child process (PID = 3772 ) 
+Hello from the child process (PID = 3773 ) 
+Hello from the child process (PID = 3774 ) 
+Hello from the child process (PID = 3775 ) 
+Hello from the child process (PID = 3776 ) 
+Hello from the child process (PID = 3777 ) 
+Hello from the child process (PID = 3780 ) 
+Hello from the child process (PID = 3783 ) 
+Hello from the child process (PID = 3785 ) 
+Hello from the child process (PID = 3788 ) 
+Hello from the child process (PID = 3789 ) 
+Hello from the child process (PID = 3796 ) 
+Hello from the child process (PID = 3800 ) 
+Hello from the child process (PID = 3802 ) 
+Hello from the child process (PID = 3803 ) 
+Hello from the child process (PID = 3804 ) 
+Hello from the child process (PID = 3805 ) 
+Hello from the child process (PID = 3806 ) 
+Hello from the child process (PID = 3807 ) 
+Hello from the child process (PID = 3808 ) 
+Hello from the child process (PID = 3809 ) 
+Hello from the child process (PID = 3810 ) 
+Hello from the child process (PID = 3813 ) 
+Hello from the child process (PID = 3815 ) 
+Hello from the child process (PID = 3816 ) 
+Hello from the child process (PID = 3817 ) 
+Hello from the child process (PID = 3818 ) 
+Hello from the child process (PID = 3819 ) 
+Hello from the child process (PID = 3821 ) 
+Hello from the child process (PID = 3823 ) 
+Hello from the child process (PID = 3825 ) 
+Hello from the child process (PID = 3826 ) 
+Hello from the child process (PID = 3827 ) 
+Hello from the child process (PID = 3828 ) 
+Hello from the child process (PID = 3829 ) 
+Hello from the child process (PID = 3830 ) 
+Hello from the child process (PID = 3831 ) 
+Hello from the child process (PID = 3832 ) 
+Hello from the child process (PID = 3833 ) 
+Hello from the child process (PID = 3837 ) 
+Hello from the child process (PID = 3842 ) 
+Hello from the child process (PID = 3848 ) 
+Hello from the child process (PID = 3851 ) 
+Hello from the child process (PID = 3853 ) 
+Hello from the child process (PID = 3854 ) 
+Hello from the child process (PID = 3860 ) 
+Hello from the child process (PID = 3863 ) 
+Hello from the child process (PID = 3866 ) 
+Hello from the child process (PID = 3867 ) 
+Hello from the child process (PID = 3868 ) 
+Hello from the child process (PID = 3869 ) 
+Hello from the child process (PID = 3871 ) 
+Hello from the child process (PID = 3872 ) 
+Hello from the child process (PID = 3877 ) 
+Hello from the child process (PID = 3878 ) 
+Hello from the child process (PID = 3879 ) 
+Hello from the child process (PID = 3880 ) 
+Hello from the child process (PID = 3881 ) 
+Hello from the child process (PID = 3882 ) 
+
+Average time taken for a process to be created  =  0.000151331s 
+
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+Hello from the child thread ( TID = 140528276440896 ) 
+
+Average time taken for a thread to be created  =  2.0906e-05s 
+
+dma2@maroon26:~/cs232/proj1.5/Debug$ ./proj1.5 -cl -t -p -r100 p -t -r100 r100 -p -t               
+________________________________________________________________________
+
+                               Welcome !                                
+________________________________________________________________________
+You have requested the text Menu interface. 
+
+Welcome to the Text Interface Manager! 
+
+Please enter:
+   1 - to calculate the average time needed to create a process
+   2 - to calculate the average time needed to create a thread
+   3 - to to calculate the average time needed to create a process and a thread simultaneosly
+   0 - to quit
+--->  
+1
+You have requested the average time needed to create a process: How many times would you want this to be repeated: 12
+You requested for the operation to be repeated 12 times
+Hello from the child process (PID = 3988 ) 
+
+Welcome to the Text Interface Manager! 
+
+Please enter:
+   1 - to calculate the average time needed to create a process
+   2 - to calculate the average time needed to create a thread
+   3 - to to calculate the average time needed to create a process and a thread simultaneosly
+   0 - to quit
+--->  
+2
+You have requested the average time needed to create a thread: How many times would you want this to be repeated: 12
+You requested for the operation to be repeated 12 times
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+
+Average time taken for a thread to be created  =  2.3267e-05s 
+
+
+Welcome to the Text Interface Manager! 
+
+Please enter:
+   1 - to calculate the average time needed to create a process
+   2 - to calculate the average time needed to create a thread
+   3 - to to calculate the average time needed to create a process and a thread simultaneosly
+   0 - to quit
+--->  
+3
+You have requested the average time needed to create a process and a  thread: How many times would you want this to be repeated: 12
+You requested for the operation to be repeated 12 times
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+
+Average time taken for a thread to be created  =  2.0716e-05s 
+
+Hello from the child process (PID = 4015 ) 
+
+Welcome to the Text Interface Manager! 
+
+Please enter:
+   1 - to calculate the average time needed to create a process
+   2 - to calculate the average time needed to create a thread
+   3 - to to calculate the average time needed to create a process and a thread simultaneosly
+   0 - to quit
+--->  
+0
+You have requested to exit the program......
+________________________________________________________________________
+
+                               GoodBye !                              
+________________________________________________________________________
+Hello from the child process (PID = 4026 ) 
+
+Welcome to the Text Interface Manager! 
+
+Please enter:
+   1 - to calculate the average time needed to create a process
+   2 - to calculate the average time needed to create a thread
+   3 - to to calculate the average time needed to create a process and a thread simultaneosly
+   0 - to quit
+--->  
+0
+You have requested to exit the program......
+________________________________________________________________________
+
+                               GoodBye !                              
+________________________________________________________________________
+Hello from the child process (PID = 4027 ) 
+
+Welcome to the Text Interface Manager! 
+
+Please enter:
+   1 - to calculate the average time needed to create a process
+   2 - to calculate the average time needed to create a thread
+   3 - to to calculate the average time needed to create a process and a thread simultaneosly
+   0 - to quit
+--->  
+2
+You have requested the average time needed to create a thread: How many times would you want this to be repeated: -12
+ The number of times you entered is invalid
+How many times would you want this to be repeated: 30
+You requested for the operation to be repeated 30 times
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+Hello from the child thread ( TID = 140405302044480 ) 
+
+Average time taken for a thread to be created  =  2.3181e-05s 
+
+
+Welcome to the Text Interface Manager! 
+
+Please enter:
+   1 - to calculate the average time needed to create a process
+   2 - to calculate the average time needed to create a thread
+   3 - to to calculate the average time needed to create a process and a thread simultaneosly
+   0 - to quit
+--->  
+0
+You have requested to exit the program......
+________________________________________________________________________
+
+                               GoodBye !                              
+________________________________________________________________________
+
+^C
+dma2@maroon26:~/cs232/proj1.5/Debug$ script done
+Script started, file is done
+dma2@maroon26:~/cs232/proj1.5/Debug$ exit

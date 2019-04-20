@@ -1,0 +1,346 @@
+Script started on Fri Mar 15 12:16:13 2019
+[?1034hbash-3.2$ ch[K[Kls
+2019		clean.sh	typescript
+bash-3.2$ cd 2019
+bash-3.2$ du[K[Kcd ..
+bash-3.2$ cat clean.sh
+#!/bin/sh
+# clean.sh.cpp shell script that evaluates directory and remove all extraneous files in the working directory.
+# Author: Daniel Ackuaku
+# CS 232 Calvin college 2019.
+# Created on: March 09, 2019
+
+# Function that removes extraneous files from the directory recursively
+housekeeping() {
+    cd $MY_DIRECTORY/
+    for files in  `ls -A`
+    do
+        # checking for ( ~, #, .o ) in files
+        if [ -f "$files" ] 
+        then
+        case $files in
+            *"~")
+                echo "$files"
+                rm $files
+            ;;
+
+            *"#")
+                echo "$files"
+                rm $files
+            ;;
+
+            *".o")
+                echo "$files"
+                rm $files
+            ;;
+
+            "core")
+                echo "$files"
+                rm $files
+            ;;
+        esac
+
+       # checking for directories in files 
+       # recursive portion of the code that looks into each directory 
+        elif [ -d $files ]
+        then
+            echo $files This is a directory
+            PREV_DIR=$MY_DIRECTORY
+            MY_DIRECTORY=$files
+            housekeeping 
+            MY_DIRECTORY=$PREV_DIR
+
+        # checking for executables in files 
+        elif [ -x "$files" ];
+        then
+            echo "$files"
+            rm $files
+
+        fi
+        
+    done
+
+    cd ..
+}
+
+
+
+
+#####################################################################
+                               #Main Prog
+#####################################################################
+# Control loop statement
+if [ -z $1 ]
+then
+    MY_DIRECTORY=`pwd`
+    echo ""
+    echo You are deleting all from the current $MY_DIRECTORY
+    echo ""
+    housekeeping
+    echo ""
+else
+    MY_DIRECTORY=$1 
+    echo ""
+    echo You are deleting from the `pwd`/$MY_DIRECTORY 
+    echo ""
+    housekeeping
+    echo ""
+
+#####################################################################
+                               #END
+#####################################################################
+
+fibash-3.2$ cd 2019 
+bash-3.2$ du
+536	./partC/coreTest
+56	./partC/goodbye
+264	./partC/.secret/S3/S3c
+96	./partC/.secret/S3/S3b
+56	./partC/.secret/S3/S3a/goodbye
+112	./partC/.secret/S3/S3a
+472	./partC/.secret/S3
+56	./partC/.secret/S1/S1a/goodbye
+112	./partC/.secret/S1/S1a
+264	./partC/.secret/S1/S1c
+96	./partC/.secret/S1/S1b
+472	./partC/.secret/S1
+536	./partC/.secret/testCore
+1480	./partC/.secret
+2128	./partC
+264	./partB/B3/B3c
+96	./partB/B3/B3b
+56	./partB/B3/B3a/goodbye
+112	./partB/B3/B3a
+472	./partB/B3
+56	./partB/B1/B1a/goodbye
+112	./partB/B1/B1a
+264	./partB/B1/B1c
+96	./partB/B1/B1b
+472	./partB/B1
+944	./partB
+536	./partA/coreTest
+56	./partA/goodbye
+648	./partA
+3720	.
+bash-3.2$ cd ..[3Pducd 2019 at clean.sh[7Pd ..2019ls[K./clean.sh 2019/partA
+
+You are deleting from the /Users/Mawuay1/Desktop/CS232/proj2/2019/partA
+
+#hello.c#
+coreTest This is a directory
+core
+goodbye This is a directory
+#goodbye.c#
+goodbye.c~
+hello.c~
+
+bash-3.2$ cd 2019
+bash-3.2$ du
+536	./partC/coreTest
+56	./partC/goodbye
+264	./partC/.secret/S3/S3c
+96	./partC/.secret/S3/S3b
+56	./partC/.secret/S3/S3a/goodbye
+112	./partC/.secret/S3/S3a
+472	./partC/.secret/S3
+56	./partC/.secret/S1/S1a/goodbye
+112	./partC/.secret/S1/S1a
+264	./partC/.secret/S1/S1c
+96	./partC/.secret/S1/S1b
+472	./partC/.secret/S1
+536	./partC/.secret/testCore
+1480	./partC/.secret
+2128	./partC
+264	./partB/B3/B3c
+96	./partB/B3/B3b
+56	./partB/B3/B3a/goodbye
+112	./partB/B3/B3a
+472	./partB/B3
+56	./partB/B1/B1a/goodbye
+112	./partB/B1/B1a
+264	./partB/B1/B1c
+96	./partB/B1/B1b
+472	./partB/B1
+944	./partB
+40	./partA/coreTest
+40	./partA/goodbye
+120	./partA
+3192	.
+bash-3.2$ cd ..
+bash-3.2$ cd ..[3Pducd 2019./clean.sh 2019/partA
+
+You are deleting all from the current /Users/Mawuay1/Desktop/CS232/proj2
+
+2019 This is a directory
+partA This is a directory
+coreTest This is a directory
+goodbye This is a directory
+partB This is a directory
+B1 This is a directory
+B1a This is a directory
+#hello.c#
+goodbye This is a directory
+#goodbye.c#
+goodbye.c~
+hello.c~
+B1b This is a directory
+#goodbye.c#
+#hay.c#
+#hey.c#
+goodbye.c~
+hay.c~
+hey.c~
+B1c This is a directory
+#goodbye.c#
+#hay.c#
+#hay.h#
+#hey.c#
+#hey.h#
+#main.c#
+goodbye.c~
+hay.c~
+hay.h~
+hay.o
+hey.c~
+hey.h~
+hey.o
+main.c~
+main.o
+B3 This is a directory
+B3a This is a directory
+#hello.c#
+goodbye This is a directory
+#goodbye.c#
+goodbye.c~
+hello.c~
+B3b This is a directory
+#goodbye.c#
+#hay.c#
+#hey.c#
+goodbye.c~
+hay.c~
+hey.c~
+B3c This is a directory
+#goodbye.c#
+#hay.c#
+#hay.h#
+#hey.c#
+#hey.h#
+#main.c#
+goodbye.c~
+hay.c~
+hay.h~
+hay.o
+hey.c~
+hey.h~
+hey.o
+main.c~
+main.o
+partC This is a directory
+#hello.c#
+.secret This is a directory
+S1 This is a directory
+S1a This is a directory
+#hello.c#
+goodbye This is a directory
+#goodbye.c#
+goodbye.c~
+hello.c~
+S1b This is a directory
+#goodbye.c#
+#hay.c#
+#hey.c#
+goodbye.c~
+hay.c~
+hey.c~
+S1c This is a directory
+#goodbye.c#
+#hay.c#
+#hay.h#
+#hey.c#
+#hey.h#
+#main.c#
+goodbye.c~
+hay.c~
+hay.h~
+hay.o
+hey.c~
+hey.h~
+hey.o
+main.c~
+main.o
+S3 This is a directory
+S3a This is a directory
+#hello.c#
+goodbye This is a directory
+#goodbye.c#
+goodbye.c~
+hello.c~
+S3b This is a directory
+#goodbye.c#
+#hay.c#
+#hey.c#
+goodbye.c~
+hay.c~
+hey.c~
+S3c This is a directory
+#goodbye.c#
+#hay.c#
+#hay.h#
+#hey.c#
+#hey.h#
+#main.c#
+goodbye.c~
+hay.c~
+hay.h~
+hay.o
+hey.c~
+hey.h~
+hey.o
+main.c~
+main.o
+testCore This is a directory
+core
+coreTest This is a directory
+core
+goodbye This is a directory
+#goodbye.c#
+goodbye.c~
+hello.c~
+
+bash-3.2$ cd 2019
+bash-3.2$ du
+40	./partC/coreTest
+40	./partC/goodbye
+144	./partC/.secret/S3/S3c
+48	./partC/.secret/S3/S3b
+40	./partC/.secret/S3/S3a/goodbye
+80	./partC/.secret/S3/S3a
+272	./partC/.secret/S3
+40	./partC/.secret/S1/S1a/goodbye
+80	./partC/.secret/S1/S1a
+144	./partC/.secret/S1/S1c
+48	./partC/.secret/S1/S1b
+272	./partC/.secret/S1
+40	./partC/.secret/testCore
+584	./partC/.secret
+704	./partC
+144	./partB/B3/B3c
+48	./partB/B3/B3b
+40	./partB/B3/B3a/goodbye
+80	./partB/B3/B3a
+272	./partB/B3
+40	./partB/B1/B1a/goodbye
+80	./partB/B1/B1a
+144	./partB/B1/B1c
+48	./partB/B1/B1b
+272	./partB/B1
+544	./partB
+40	./partA/coreTest
+40	./partA/goodbye
+120	./partA
+1368	.
+bash-3.2$ cd ..
+bash-3.2$ exit
+
+Script done on Fri Mar 15 12:19:02 2019
